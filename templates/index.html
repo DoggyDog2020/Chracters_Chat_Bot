@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Character Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .character-toggles {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .character-btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 20px;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .character-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .character-btn.active {
+            border-color: currentColor;
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .character-btn .emoji {
+            font-size: 3em;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .character-btn .name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 30px;
+            background: #ffffff;
+        }
+
+        .chat-message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            text-align: right;
+        }
+
+        .chat-message .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user .message-bubble {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-message.character .message-bubble {
+            background: #f1f3f5;
+            color: #333;
+            border-bottom-left-radius: 5px;
+        }
+
+        .chat-message .sender {
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+
+        .input-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+
+        .input-container button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .input-container button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .input-container button:active {
+            transform: scale(0.98);
+        }
+
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Character Chat</h1>
+            <p>Talk with Mickey Mouse, Yoda, or Spider-Man!</p>
+        </div>
+
+        <div class="character-toggles">
+            {% for id, char in characters.items() %}
+            <div class="character-btn" data-character="{{ id }}" data-color="{{ char.color }}">
+                <span class="emoji">{{ char.emoji }}</span>
+                <span class="name">{{ char.name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="status-message" id="statusMessage">
+                👆 Select a character above to start chatting!
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+            <button id="sendBtn" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        let currentCharacter = null;
+        let isLoading = false;
+
+        // Character toggle buttons
+        document.querySelectorAll('.character-btn').forEach(btn => {
+            // Apply configured color from data-color to avoid raw template tokens inside style attributes
+            if (btn.dataset.color) btn.style.color = btn.dataset.color;
+
+            btn.addEventListener('click', async () => {
+                if (isLoading) return;
+                
+                const characterId = btn.dataset.character;
+                
+                // Show loading
+                isLoading = true;
+                document.getElementById('statusMessage').innerHTML = '<span class="loading"></span> Loading character...';
+                
+                try {
+                    const response = await fetch('/switch_character', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ character: characterId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Update active button
+                        document.querySelectorAll('.character-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        currentCharacter = characterId;
+                        
+                        // Clear chat and show welcome message
+                        const chatContainer = document.getElementById('chatContainer');
+                        chatContainer.innerHTML = `
+                            <div class="status-message">
+                                ${data.emoji} You're now chatting with <strong>${data.character}</strong>!<br>
+                                <small>${data.description}</small>
+                            </div>
+                        `;
+                        
+                        // Enable input
+                        document.getElementById('messageInput').disabled = false;
+                        document.getElementById('sendBtn').disabled = false;
+                        document.getElementById('messageInput').focus();
+                    } else {
+                        alert(data.error);
+                    }
+                } catch (error) {
+                    alert('Error switching character: ' + error);
+                } finally {
+                    isLoading = false;
+                }
+            });
+        });
+
+        // Send message
+        async function sendMessage() {
+            if (isLoading || !currentCharacter) return;
+            
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, 'user', 'You');
+            input.value = '';
+            
+            // Show loading
+            isLoading = true;
+            document.getElementById('sendBtn').disabled = true;
+            
+            const loadingMsg = addMessage('...', 'character', currentCharacter);
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                loadingMsg.remove();
+                
+                if (data.response) {
+                    addMessage(data.response, 'character', data.emoji + ' ' + data.character);
+                } else if (data.error) {
+                    addMessage(data.error, 'character', '⚠️ System');
+                }
+            } catch (error) {
+                loadingMsg.remove();
+                addMessage('Error: ' + error, 'character', '⚠️ Error');
+            } finally {
+                isLoading = false;
+                document.getElementById('sendBtn').disabled = false;
+                input.focus();
+            }
+        }
+
+        function addMessage(text, type, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            
+            // Remove status message if exists
+            const statusMsg = document.getElementById('statusMessage');
+            if (statusMsg) statusMsg.remove();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+            messageDiv.innerHTML = `
+                <div class="sender">${sender}</div>
+                <div class="message-bubble">${text}</div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Send on button click
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+
+        // Send on Enter key
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
